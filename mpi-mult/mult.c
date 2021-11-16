@@ -26,15 +26,18 @@ int count_digits(char *long_int) {
 
 int main(int argc, char *argv[]) {
 
-  char *str;
+  char *massive_int_1, *massive_int_2;
+  //char *product;
   
-  if (argc != 2) {
-    fprintf(stderr, "Enter a \"String\"");
+  if (argc != 3) {
+    fprintf(stderr, "Usage: ./%s massive_int_1 massive_int_2\n", argv[0]);
     exit(1);
   }
 
-  str = argv[1];
-
-  printf("There are %d cahracters in str\n", count_digits(str));
+  massive_int_1 = argv[1];
+  massive_int_2 = argv[2];
+  
+  printf("There are %d digits in massive_int_1\n", count_digits(massive_int_1));
+  printf("There are %d digits in massive_int_2\n", count_digits(massive_int_2));
   return 0;
 }
