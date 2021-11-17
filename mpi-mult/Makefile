@@ -5,7 +5,7 @@ CFILES=mult.c
 OFILES=$(CFILES:.c=.o)
 
 mult:	$(OFILES)
-	$(CC) -o mult $(OFILES) -lm
+	$(CC) -o mult $(OFILES) -lm -lgmp
 
 .c.o:
 	$(CC) -c $<
