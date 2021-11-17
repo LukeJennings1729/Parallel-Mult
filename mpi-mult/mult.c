@@ -13,35 +13,55 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <gmp.h> //for makefile, use -lgmp
-
+#include <time.h>
+#include <unistd.h>
+#include "timer.h"
 
 //integers in GMP are declared as mpz_t sum;
 
+
+void mpz_rand(mpz_t in){
+  //change n to change size of random
+  mp_bitcnt_t n = 1000;
+  mpz_t rop;
+  gmp_randstate_t state;
+  mpz_init (rop);
+  gmp_randinit_mt(state);
+  long int op = time(NULL);
+  gmp_randseed_ui(state, op);
+  mpz_urandomb(in, state, n);
+}
 
 int main(int argc, char *argv[]){
   //this program is to test how to use the gmp library, and be able to successfully multiply large numbers. Things such as parallelization will be done later
 
   //here is where we initialize our mpz_t, which stores our really large ints
+  
+  /*
+    printf("please input 2 integers:\n");
+    char* input1 = (char *)malloc(10000 * sizeof(char));
+    char* input2 = (char *)malloc(10000 * sizeof(char));
+    scanf("%s",input1);
+    scanf("%s",input2);
+  */
 
-  printf("please input 2 integers:\n");
-  char* input1 = (char *)malloc(10000 * sizeof(char));
-  char* input2 = (char *)malloc(10000 * sizeof(char));
-  scanf("%s",input1);
-  scanf("%s",input2);
-
+  
   //here is where we initialize our mps_t variables
   mpz_t big_int1, big_int2;
   //the parameters for this are the mpz_t, the string, and the base of the string
-  mpz_init_set_str(big_int1,input1,10);
-  mpz_init_set_str(big_int2,input2,10);
-
+  mpz_init(big_int1);
+  mpz_rand(big_int1);
+  sleep(1);
+  mpz_init(big_int2);
+  mpz_rand(big_int2);
   //printing out the numbers
   mpz_t output;
+  gmp_printf("int 1:%Zd \nint 2:%Zd\n",big_int1,big_int2);
   mpz_init(output);
 
   mpz_mul(output,big_int1,big_int2);
   
-  gmp_printf("\n%Zd\n",output);
+  gmp_printf("Output: %Zd\n",output);
   return 0;
   
 }
