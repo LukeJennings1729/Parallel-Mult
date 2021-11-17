@@ -24,8 +24,8 @@ int main(int argc, char *argv[]){
   //here is where we initialize our mpz_t, which stores our really large ints
 
   printf("please input 2 integers:\n");
-  char* input1 = (char *)malloc(1000 * sizeof(char));
-  char* input2 = (char *)malloc(1000 * sizeof(char));
+  char* input1 = (char *)malloc(10000 * sizeof(char));
+  char* input2 = (char *)malloc(10000 * sizeof(char));
   scanf("%s",input1);
   scanf("%s",input2);
 
@@ -36,15 +36,12 @@ int main(int argc, char *argv[]){
   mpz_init_set_str(big_int2,input2,10);
 
   //printing out the numbers
-  gmp_printf("%Zd\n",big_int1);
-  gmp_printf("%Zd\n",big_int2);
-
   mpz_t output;
   mpz_init(output);
 
   mpz_mul(output,big_int1,big_int2);
   
-  gmp_printf("%Zd\n",output);
+  gmp_printf("\n%Zd\n",output);
   return 0;
   
 }
