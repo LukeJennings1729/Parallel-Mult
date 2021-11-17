@@ -11,19 +11,16 @@ int main(int argc, char *argv[]){
   gmp_randinit_mt(state);
   mpz_t seed;
   printf("1\n");
-  long int op = 999;
-  printf("1\n");
-  mpz_init_set_si(seed, op);
-  printf("o");
-  fflush(stdout);
-  gmp_randseed_ui(state, seed);
+  for(int i = 0; i < 10; i++){
+  gmp_randseed_ui(state,i);
   printf("1\n");
   fflush(stdout);
   mp_bitcnt_t n = 10;
-    printf("1\n");
+  printf("1\n");
   fflush(stdout);
-  mpz_urandomb(rop, state, n);
+  mpz_urandomb(rop, state, 100);
   
   gmp_printf("rob = %Zd\n",rop);
-  
+  }
+  return 0;
 }
