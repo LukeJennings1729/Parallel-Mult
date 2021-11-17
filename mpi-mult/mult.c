@@ -36,9 +36,6 @@ int main(int argc, char *argv[]){
   mpz_init_set_str(big_int2,input2,10);
 
   //printing out the numbers
-  gmp_printf("%Zd\n",big_int1);
-  gmp_printf("%Zd\n",big_int2);
-
   mpz_t output;
   mpz_init(output);
 
