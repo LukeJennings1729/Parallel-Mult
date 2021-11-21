@@ -15,14 +15,16 @@
 #include <pthread.h>
 #include <gmp.h>
 #include <string.h>
+#include <unistd.h>
 
 //we need a mutex to make sure when we adding all the things together at the end we don't conflict when we add up all the partial sums
 pthread_mutex_t mutex;
 
 mpz_t main_factor;
-char **split_factors;
+char *split_factor;
 //how many digits are in each of the smaller factors, this is important for calculating the correct sum at the end
-int *len_split;
+int len_input1, len_input2, len_split;
+int num_threads;
 
 mpz_t total;
 #define MAX_BITS 32768
@@ -34,9 +36,43 @@ typedef struct worker_t {
 
 void *thread_compute(void *arg){
 
+  worker_t *worker = (worker_t *)arg;
+  int start, count, leftovers;
+  char *substring;
+  mpz_t factor_that_splits, output;
+  
+  leftovers = len_split % num_threads;
+  //start = worker->thread_num*len_split/num_threads + min(&(worker->thread_num), &leftovers);
+  start = worker->thread_num*len_split/num_threads; //+ ( ((worker->thread_num) < (leftovers)) ? (worker->thread_num) : (leftovers) );
+  count =  len_split/num_threads;
 
+  /*
+  if (worker->thread_num <= leftovers)
+    count++;
+  */
+  
+  substring = (char *)malloc((count+1)*sizeof(char));
+  strncpy(substring, (split_factor+start), (count));
+  substring[count] = '\0';
+
+  printf("[%d] %s\n", worker->thread_num, substring);
+  
+  mpz_init_set_str(factor_that_splits, substring, 16);
+
+  mpz_init(output);
+  mpz_mul(output, main_factor, factor_that_splits);
+  
+  mpz_mul_2exp(factor_that_splits, output, (len_split-(start+count))*4);
+
+  pthread_mutex_lock(&mutex);
+  mpz_add(total, total, factor_that_splits);
+  gmp_printf("[%d] %Zd\n", worker->thread_num, factor_that_splits);
+  pthread_mutex_unlock(&mutex);
+  
   pthread_exit(0);
 }
+
+
 
 /*
   @param argv[1] number of threads
@@ -46,30 +82,31 @@ void *thread_compute(void *arg){
   @param argv[4] same as argv[3] but for the second factor
  */
 int main(int argc, char *argv[]){
+  pthread_mutex_init(&mutex, NULL);
   
   //here we should initialize the factors and total
   mpz_init(main_factor);
   //mpz_init(factor2);
   char *input1  = (char *)malloc(MAX_BITS * sizeof(char));
   char *input2 = (char *)malloc(MAX_BITS * sizeof(char));
+  FILE *in_file1, *in_file2;
+  
   if(argc < 3){
     fprintf(stderr,"[%s] too few parameters, number of threads, type of input (file,command,or random), [optional file names or integer] \n",argv[0]);
     exit(1);
   }
-  int num_threads = strtol(argv[1],NULL,16);
+  num_threads = strtol(argv[1],NULL,16);
   
-  len_split = (int *)malloc(num_threads *sizeof(char));
+  //len_split = (int *)malloc(num_threads * sizeof(char));
   
-
-  
-  switch(argv[2]){
-    case "random":
-    case "r":
+  switch(atoi(argv[2])){
+    //case "random":
+    case 'r':
       
   break;
     //this case meas that we are reading the numbers in from the command line
-  case "command":
-  case "c":
+    //case "command":
+  case 'c':
     //this assumes that the input is only in base 10
     //mpz_set_str(factor1,argv[3],10);
     //mpz_set_str(factor2,argv[4],10);
@@ -77,28 +114,38 @@ int main(int argc, char *argv[]){
     break;
   default:
 
-    FILE *in_file = NULL;
     in_file1 = fopen(argv[3],"r");
     in_file2 = fopen(argv[4],"r");
     //if in_file is still NULL
-    if(in_file1 = NULL){
-      fprintf(stderr,"[%s] could not open file %s\n",argv[3]);
+    if(in_file1 == NULL){
+      fprintf(stderr,"[%s] could not open file %s\n",argv[0], argv[3]);
       exit(1);
     }
-    if(in_file2 = NULL){
-      fprintf(stderr,"[%s] could not open file %s\n",argv[4]);
+    if(in_file2 == NULL){
+      fprintf(stderr,"[%s] could not open file %s\n",argv[0], argv[4]);
       exit(1);
     }
     
     fscanf(in_file1,"%s",input1);
     fscanf(in_file2,"%s",input2);
+
+    len_input1 = strlen(input1);
+    len_input2 = strlen(input2);
+    
     //next we want to get the length of our strings, we will then make the larger one the one which is split up, and the smaller the factor all threads will multiply against
-    if(strlen(input1) > strlen(input2)){
+    if(len_input1 > len_input2){
       //input2 is the smaller one, therefore we make it main_factor
       mpz_set_str(main_factor,input2,16);
+
+      split_factor = input1;
+      len_split = len_input1;
+      
       //now we start splitting up the pieces
     } else {
       mpz_set_str(main_factor,input1,16);
+
+      split_factor = input2;
+      len_split = len_input2;
     }
     
     
@@ -107,7 +154,7 @@ int main(int argc, char *argv[]){
   }
 
   //here we set up all our threads, storing it an array called thread_info
-  thread_info = (worker_t *)malloc(num_threads*sizeof(worker_t));
+  worker_t *thread_info = (worker_t *)malloc(num_threads*sizeof(worker_t));
 
   int rc;
   for(int thread = 0; thread < num_threads; thread++){
@@ -123,6 +170,8 @@ int main(int argc, char *argv[]){
   for(int thread = 0; thread < num_threads; thread++){
       pthread_join(thread_info[thread].thread_id,NULL);
   }
+
+  gmp_printf("%Zd\n", total);
 
   return 0;
 }
