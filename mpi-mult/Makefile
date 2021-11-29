@@ -1,14 +1,14 @@
 # Makefile for mpi-mult.c
 # Nov 16, 2021
 CC=gcc -g -Wall
-CFILES=mult.c
+CFILES=thread_mult.c timer.c
 OFILES=$(CFILES:.c=.o)
 
-mult:	$(OFILES)
-	$(CC) -o mult $(OFILES) -lm -lgmp
+thread_mult:	$(OFILES)
+	$(CC) -o thread_mult $(OFILES) -lm -lgmp -lpthread
 
 .c.o:
 	$(CC) -c $<
 
 clean::
-	/bin/rm $(OFILES) mult
+	/bin/rm $(OFILES) thread_mult
