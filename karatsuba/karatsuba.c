@@ -118,17 +118,25 @@ void *d_parse(void *arg){
 
 /* this will shift over the ac partial product by z^2 digits */
 void *ac_shift(void *arg){
+  //we want to shift over our result of ac by z by z, as that is how many zeros the product would have
+  mpz_mul_2exp(ac,ac,z*z*4);
 
+  pthread_exit(0);
 }
 
 /* Calculates the product if the A and C numbers */
 void *ac_compute(void *arg) {
-
+  //here we multiply a and c to be later used
+  mpz_init(ac);
+  mpz_mult(ac,a,c);
+  pthread_exit(0);
 }
 
 /* Calculates the product of the B and D numbers */
 void *bd_compute(void *arg) {
-
+  mpz_init(bd);
+  mpz_mult(bd,b,d);
+  pthread_exit(0);
 }
 
 /*
@@ -206,14 +214,18 @@ int main(int argc, char *argv[]) {
   
   /* after parsing through the inputs into a,b,c, and d we now need
      to calculate the 3 chunks, ac, bd, and (a + b)(c + d)
-
+  */
+  pthread_creat(&threads[0],NULL,ac_compute,NULL);
 
   // Free arrays
   free(files);
   free(thread_info);
+  free(threads);
   free(input1);
   free(input2);
-
+  free(ab_string);
+  free(cd_string);
+  
   // Destroy mutex
   pthread_mutex_destroy(&mutex);
   return 0;
