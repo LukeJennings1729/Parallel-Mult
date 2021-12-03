@@ -25,6 +25,7 @@ mpz_t ac;
 mpz_t bd;
 mpz_t aplusb;
 mpz_t cplusd;
+mpz_t shift;
 //factoring represents the steps starting with (a + b)(c + d)
 mpz_t factoring;
 int z;
@@ -123,7 +124,7 @@ void *d_parse(void *arg){
 /* this will shift over the ac partial product by z^2 digits */
 void *ac_shift(void *arg){
   //we want to shift over our result of ac by z by z, as that is how many zeros the product would have
-  mpz_mul_2exp(ac,ac,z*z*4);
+  mpz_mul_2exp(shift,ac,z*z*4);
 
   pthread_exit(0);
 }
@@ -132,14 +133,23 @@ void *ac_shift(void *arg){
 void *ac_compute(void *arg) {
   //here we multiply a and c to be later used
   mpz_init(ac);
-  mpz_mult(ac,a,c);
+  mpz_mul(ac,a,c);
   pthread_exit(0);
 }
 
 /* Calculates the product of the B and D numbers */
 void *bd_compute(void *arg) {
   mpz_init(bd);
-  mpz_mult(bd,b,d);
+  mpz_mul(bd,b,d);
+  pthread_exit(0);
+}
+
+void *finish_factoring(void *arg){
+  //we need to remove from (a + b)(c + d) the values of ac and bd so 
+  mpz_sub(factoring, factoring, ac);
+  mpz_sub(factoring, factoring, bd);
+  
+  mpz_mul_2exp(factoring,factoring,4 * z);
   pthread_exit(0);
 }
 
@@ -224,6 +234,8 @@ int main(int argc, char *argv[]) {
   pthread_create(&threads[0],NULL,ac_compute,NULL);
   pthread_create(&threads[1],NULL,bd_compute,NULL);
 
+  //in this step while the other threads are finding ac and bd, we are
+  // doing the adds for a + b and c + d
   mpz_init(aplusb);
   mpz_init(cplusd);
   mpz_init(factoring);
@@ -233,6 +245,19 @@ int main(int argc, char *argv[]) {
   pthread_join(threads[0],NULL);
   pthread_join(threads[1],NULL);
 
+  //here we are shifting over the ac and the (ad + bc) parts
+  pthread_create(&threads[0],NULL,ac_shift,NULL);
+  pthread_create(&threads[1],NULL,finish_factoring,NULL);
+
+  pthread_join(threads[0],NULL);
+  pthread_join(threads[1],NULL);
+
+
+  mpz_init(total);
+  mpz_add(shift);
+  mpz_add(factoring);
+  mpz_add(bd);
+  
   // Free arrays
   
   free(thread_info);
