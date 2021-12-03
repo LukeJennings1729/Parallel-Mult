@@ -23,6 +23,10 @@ mpz_t c;
 mpz_t d;
 mpz_t ac;
 mpz_t bd;
+mpz_t aplusb;
+mpz_t cplusd;
+//factoring represents the steps starting with (a + b)(c + d)
+mpz_t factoring;
 int z;
 mpz_t total;
 char *input1;
@@ -179,6 +183,7 @@ int main(int argc, char *argv[]) {
   for(i=1; i<=2; i++)
       pthread_join(scan_t_info[i].thread_id,NULL);
   free(scan_t_info);
+  free(files);
   /* this is to make sure our threads put things into the imput 1 and 2 buffers  */
   printf("input1 = %s\ninput2 = %s\n", input1, input2);
 
@@ -202,9 +207,9 @@ int main(int argc, char *argv[]) {
   pthread_t *threads = (pthread_t *)malloc(4*sizeof(pthread_t));
   /* from here we start up new threads in order to find the values of
      a, b,c, and d */
-  pthread_create(&threads[0],NULL,a_parse,NULL);
-  pthread_create(&threads[1],NULL,b_parse,NULL);
-  pthread_create(&threads[2],NULL,d_parse,NULL);
+  pthread_create(&threads[0],NULL,d_parse,NULL);
+  pthread_create(&threads[1],NULL,a_parse,NULL);
+  pthread_create(&threads[2],NULL,b_parse,NULL);
   pthread_create(&threads[3],NULL,c_parse,NULL);
   
   pthread_join(threads[0],NULL);
@@ -212,13 +217,24 @@ int main(int argc, char *argv[]) {
   pthread_join(threads[2],NULL);
   pthread_join(threads[3],NULL);
   
-  /* after parsing through the inputs into a,b,c, and d we now need
+  /* 
+     after parsing through the inputs into a,b,c, and d we now need
      to calculate the 3 chunks, ac, bd, and (a + b)(c + d)
   */
-  pthread_creat(&threads[0],NULL,ac_compute,NULL);
+  pthread_create(&threads[0],NULL,ac_compute,NULL);
+  pthread_create(&threads[1],NULL,bd_compute,NULL);
+
+  mpz_init(aplusb);
+  mpz_init(cplusd);
+  mpz_init(factoring);
+  mpz_add(aplusb,a,b);
+  mpz_add(cplusd,c,d);
+
+  pthread_join(threads[0],NULL);
+  pthread_join(threads[1],NULL);
 
   // Free arrays
-  free(files);
+  
   free(thread_info);
   free(threads);
   free(input1);
