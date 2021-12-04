@@ -79,10 +79,9 @@ void *thread_compute(void *arg){
 
 /*
   @param argv[1] number of threads
-  @param argv[2] string representing the method in which we read in the numbers
-  'r' for random, 'c' command line, and if file then the file's name
-  @param argv[3] if c was selected, input integer from command line. If f was selected input file containing first integer
-  @param argv[4] same as argv[3] but for the second factor
+  @param argv[2] if c was selected, input integer from command line. If f was selected input file containing first integer
+  @param argv[3] same as argv[3] but for the second factor
+  @prama argv[4] if not null, if 'd' then will print result in decimal, if 'x' product will be printed in hex
  */
 int main(int argc, char *argv[]){
   pthread_mutex_init(&mutex, NULL);
@@ -97,7 +96,7 @@ int main(int argc, char *argv[]){
 
   
   if(argc < 3){
-    fprintf(stderr,"[%s] too few parameters, number of threads, type of input (file,command,or random), [optional file names or integer] \n",argv[0]);
+    fprintf(stderr,"[%s] too few parameters, number of threads, file name 1, file name 2 \n",argv[0]);
     exit(1);
   }
   num_threads = strtol(argv[1],NULL,16);
@@ -182,7 +181,15 @@ int main(int argc, char *argv[]){
 
   gettimeofday(&stop, NULL);
 
-  gmp_printf("%Zd\n", total);
+  //Print the output
+  if(argv[4] != NULL){
+    if(argv[4][0] == 'd'){
+      gmp_printf("%Zd\n",total);
+    }else if (argv[4][0] == 'x'){
+      gmp_printf("%Zx\n",total);
+    }
+  }
+
 
   printf("Time elapse with overhead: %f\n", diffgettime(start, stop));
   

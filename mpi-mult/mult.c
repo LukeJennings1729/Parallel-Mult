@@ -21,6 +21,10 @@
 
 //integers in GMP are declared as mpz_t sum;
 
+/*
+  argv[1] and argv[2] are the file names
+  argv[3] if d, it will return in decimal, if h then in hex
+ */
 int main(int argc, char *argv[]){
   char *input1  = (char *)malloc(MAX_BITS * sizeof(char));
   char *input2 = (char *)malloc(MAX_BITS * sizeof(char));
@@ -72,12 +76,11 @@ int main(int argc, char *argv[]){
   gettimeofday(&stop, NULL);
 
   //Print the output
-  if(argv[4] != NULL){
-    int print_type = atoi(argv[4]);
-    if(print_type == 10){
+  if(argv[3] != NULL){
+    if(argv[3][0] == 'd'){
       gmp_printf("%Zd\n",output);
-    } else if (print_type == 16){
-      gmp_printf("#Zd\n",output);
+    }else if (argv[3][0] == 'x'){
+      gmp_printf("%Zx\n",output);
     }
   }
   printf("Time Elapsed: %f\n", diffgettime(start, stop));
