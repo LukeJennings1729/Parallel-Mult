@@ -61,10 +61,13 @@ void *scan_file(void *arg){
   if (t->thread_num == 1){
     fscanf(t->file, "%s", input1);
     len_input1 = strlen(input1);
-  else
+  }
+  
+  else {
     fscanf(t->file, "%s", input2);
     len_input2 = strlen(input2);
   }
+  
   pthread_exit(0);
 }
 
@@ -89,7 +92,7 @@ void *b_parse(void *arg){
    pthread_exit(0);
 }
 /* this will prase out the c and d values of the second string */
-  void *c_parse(void *arg){
+void *c_parse(void *arg){
     //c is a special case where potientially the second factor is way too small in comparison to ab
   if(len_cd - z > 0){
     c_string = (char *)malloc((len_cd - z + 1) * sizeof(char));
@@ -254,9 +257,9 @@ int main(int argc, char *argv[]) {
 
 
   mpz_init(total);
-  mpz_add(shift);
-  mpz_add(factoring);
-  mpz_add(bd);
+  mpz_add(total, total, shift);
+  mpz_add(total, total, factoring);
+  mpz_add(total, total, bd);
   
   // Free arrays
   
@@ -273,6 +276,3 @@ int main(int argc, char *argv[]) {
 }
 
 
-int main(int argc, char *argv[]) {
-  return 0;
-}
