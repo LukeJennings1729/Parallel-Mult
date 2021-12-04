@@ -24,6 +24,8 @@
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 
+\renewcommand{\familydefault}{\sfdefault}
+
 \begin{document}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -34,14 +36,14 @@
 		\vspace*{1cm}
 
 		\Huge
-		\textbf{Parallelization of Large-Scale Multiplication}
+		\textbf{Making Multiplication Faster: Struggles of Parallelizing Karatsuba’s Multiplication Algorithm}
 
 		\vspace{0.5cm}
 		\LARGE	
 
 		\vspace{1.5cm}
 
-		\textbf{Luke Jenning, Zachary Gilman, JT Capper}
+		\textbf{Joseph Capper, Zachary Gilman, Luke Jennings}
 
 		\vfill
 		%\includegraphics{cover.jpg}
@@ -75,11 +77,12 @@ Long multiplication, the grade-school technique of multiplying numbers by calcul
 \section{The GMP Library}
 	% Before section 1, discuss that for the project we did use this library
 	This project heavily utilizes version 6.2.1 of the GNU Multiple Precision Library, better known as GMP, is a publicly available math library for C/C++ that allows for operations on numbers of varying precisions, only gated by the memory of the computer performing such operations. For the sake of this project we will be performing multiplication on only integers. As a result, we will be using GMP’s integer struct implementation mpz_t. Although all common mathematical operations such as addition, subtraction, division, and so on are accounted for, here are the functions particularly relevant to our parallel multiplication algorithms.\par
-
-\subsection{What is the GNU MP Bignum Library?}
-Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Venenatis cras sed felis eget. Semper eget duis at tellus at. Nulla posuere sollicitudin aliquam ultrices sagittis. Risus viverra adipiscing at in tellus integer feugiat scelerisque varius. In hac habitasse platea dictumst. Urna nec tincidunt praesent semper feugiat. Non pulvinar neque laoreet suspendisse interdum consectetur libero id. Vestibulum mattis ullamcorper velit sed ullamcorper morbi tincidunt ornare massa. Magna ac placerat vestibulum lectus mauris ultrices eros in. Adipiscing elit pellentesque habitant morbi tristique senectus. Bibendum neque egestas congue quisque egestas diam. Ut tellus elementum sagittis vitae et leo duis. A arcu cursus vitae congue mauris rhoncus aenean vel. Velit scelerisque in dictum non consectetur a erat.\par
-Sit amet nisl suscipit adipiscing. Ut enim blandit volutpat maecenas volutpat. Consectetur lorem donec massa sapien. Commodo nulla facilisi nullam vehicula ipsum a. Et ligula ullamcorper malesuada proin. Aliquam purus sit amet luctus venenatis lectus magna fringilla. Id volutpat lacus laoreet non curabitur gravida arcu ac tortor. Dolor magna eget est lorem ipsum dolor sit amet consectetur. Odio tempor orci dapibus ultrices in iaculis nunc sed augue. In nibh mauris cursus mattis molestie a iaculis at erat. Ac feugiat sed lectus vestibulum mattis ullamcorper velit sed ullamcorper. Velit dignissim sodales ut eu sem integer vitae justo eget.\par
-Sagittis eu volutpat odio facilisis mauris sit amet massa. Sapien et ligula ullamcorper malesuada proin libero nunc consequat interdum. Sodales neque sodales ut etiam. Eu volutpat odio facilisis mauris sit. Ullamcorper a lacus vestibulum sed arcu non odio. Natoque penatibus et magnis dis parturient montes nascetur ridiculus mus. Non blandit massa enim nec. Cras fermentum odio eu feugiat pretium. Quis vel eros donec ac odio tempor orci dapibus ultrices. Neque aliquam vestibulum morbi blandit cursus risus. Nam at lectus urna duis convallis convallis tellus. Nullam non nisi est sit amet facilisis. Arcu risus quis varius quam. Massa enim nec dui nunc mattis. Blandit aliquam etiam erat velit scelerisque in dictum.\par
+	
+	\begin{itemize}
+		\item mpz_init(mpz_t struct x) - Function initializes a mpz_t struct for use, be it for storing a value or as an output buffer. By default this sets the integer to 0. Although not frequently used, it is helpful in some edge cases later, or when we wish to parallelize the overhead of initialization.
+		\item mpz_inti_set_str(mpz_t x, const char *string, int base) - Function initializes an mpz_t struct for use starting with an integer of the value of a string given some input base. This is extremely useful for easily splitting the multiplicands into smaller parts and bit shifts easier by setting the base to hexadecimal, thus making a shift of one digit equal to four bit shifts.
+		\item mpz_mul(mpz_t rop, mpz_t x, mpz_t y) - This function takes two mpz_t structs and multiplies the the integers contained inside them.
+	\end{itemize}
 
 \subsection{Serial Multiplication}
 Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Venenatis cras sed felis eget. Semper eget duis at tellus at. Nulla posuere sollicitudin aliquam ultrices sagittis. Risus viverra adipiscing at in tellus integer feugiat scelerisque varius. In hac habitasse platea dictumst. Urna nec tincidunt praesent semper feugiat. Non pulvinar neque laoreet suspendisse interdum consectetur libero id. Vestibulum mattis ullamcorper velit sed ullamcorper morbi tincidunt ornare massa. Magna ac placerat vestibulum lectus mauris ultrices eros in. Adipiscing elit pellentesque habitant morbi tristique senectus. Bibendum neque egestas congue quisque egestas diam. Ut tellus elementum sagittis vitae et leo duis. A arcu cursus vitae congue mauris rhoncus aenean vel. Velit scelerisque in dictum non consectetur a erat.\par
