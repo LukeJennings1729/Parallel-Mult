@@ -57,6 +57,8 @@ typedef struct worker_thread {
 
 /* scans file for input 1 */
 void *scan_file(void *arg){
+  fprintf(stdout, "Reached scan section\n");
+  fflush(stdout);
   scan_thread *t = (scan_thread *)arg;
   if (t->thread_num == 1){
     fscanf(t->file, "%s", input1);
@@ -73,6 +75,8 @@ void *scan_file(void *arg){
 
 /* this will parse out the a and b values of the first string */
 void *a_parse(void *arg){
+  fprintf(stdout, "Reached a_parse\n");
+  fflush(stdout);
   a_string = (char *)malloc((len_ab - z + 1)*sizeof(char));
   //we copy the length of the string-z digits into
   strncpy(a_string,0,len_ab - z);
@@ -84,7 +88,10 @@ void *a_parse(void *arg){
 }
 
 void *b_parse(void *arg){
-   b_string = (char *)malloc((z+1)*sizeof(char));
+  fprintf(stdout, "Reached b_parse\n");
+  fflush(stdout);
+
+  b_string = (char *)malloc((z+1)*sizeof(char));
    strncpy(b_string,len_ab - z,z);
    b_string[z] = '\0';
 
@@ -94,6 +101,11 @@ void *b_parse(void *arg){
 /* this will prase out the c and d values of the second string */
 void *c_parse(void *arg){
     //c is a special case where potientially the second factor is way too small in comparison to ab
+
+  fprintf(stdout, "Reached c_parse\n");
+  fflush(stdout);
+
+  
   if(len_cd - z > 0){
     c_string = (char *)malloc((len_cd - z + 1) * sizeof(char));
     strncpy(c_string,0,len_cd - z);
@@ -109,6 +121,10 @@ void *c_parse(void *arg){
 }
 
 void *d_parse(void *arg){
+
+  fprintf(stdout, "Reached d_parse\n");
+  fflush(stdout);
+
   d_string = (char *)malloc((z+1)*sizeof(char));
   if(len_cd - z > 0){
     strncpy(d_string,len_cd - z,z);
@@ -126,6 +142,11 @@ void *d_parse(void *arg){
 
 /* this will shift over the ac partial product by z^2 digits */
 void *ac_shift(void *arg){
+
+  fprintf(stdout, "Reached ac_shift\n");
+  fflush(stdout);
+
+  
   //we want to shift over our result of ac by z by z, as that is how many zeros the product would have
   mpz_mul_2exp(shift,ac,z*z*4);
 
@@ -134,6 +155,10 @@ void *ac_shift(void *arg){
 
 /* Calculates the product if the A and C numbers */
 void *ac_compute(void *arg) {
+
+  fprintf(stdout, "Reached ac_compute\n");
+  fflush(stdout);
+
   //here we multiply a and c to be later used
   mpz_init(ac);
   mpz_mul(ac,a,c);
@@ -142,12 +167,20 @@ void *ac_compute(void *arg) {
 
 /* Calculates the product of the B and D numbers */
 void *bd_compute(void *arg) {
+  fprintf(stdout, "Reached bd_compute\n");
+  fflush(stdout);
+
+  
   mpz_init(bd);
   mpz_mul(bd,b,d);
   pthread_exit(0);
 }
 
 void *finish_factoring(void *arg){
+
+  fprintf(stdout, "Reached finish_factoring\n");
+  fflush(stdout);
+
   //we need to remove from (a + b)(c + d) the values of ac and bd so 
   mpz_sub(factoring, factoring, ac);
   mpz_sub(factoring, factoring, bd);
@@ -177,6 +210,8 @@ int main(int argc, char *argv[]) {
   char *input2 = (char *)malloc(MAX_BYTES * sizeof(char));
   int len_input1, len_input2;
 
+  fprintf(stdout, "Start\n");
+  fflush(stdout);
   in_file1 = fopen(argv[1],"r");
   in_file2 = fopen(argv[2],"r");
 
@@ -196,7 +231,11 @@ int main(int argc, char *argv[]) {
   for(i=1; i<=2; i++)
       pthread_join(scan_t_info[i].thread_id,NULL);
   free(scan_t_info);
+  fclose(in_file1);
+  fclose(in_file2);
+
   free(files);
+  
   /* this is to make sure our threads put things into the imput 1 and 2 buffers  */
   printf("input1 = %s\ninput2 = %s\n", input1, input2);
 
