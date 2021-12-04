@@ -37,6 +37,7 @@ int main(int argc, char *argv[]){
     exit(1);
   }
 
+
   in_file1 = fopen(argv[1],"r");
   in_file2 = fopen(argv[2],"r");
   //if in_file is still NULL
@@ -71,8 +72,14 @@ int main(int argc, char *argv[]){
   gettimeofday(&stop, NULL);
 
   //Print the output
-  gmp_printf("%Zd\n",output);
-
+  if(argv[4] != NULL){
+    int print_type = atoi(argv[4]);
+    if(print_type == 10){
+      gmp_printf("%Zd\n",output);
+    } else if (print_type == 16){
+      gmp_printf("#Zd\n",output);
+    }
+  }
   printf("Time Elapsed: %f\n", diffgettime(start, stop));
 
   return 0;
