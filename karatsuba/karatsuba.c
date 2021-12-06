@@ -55,23 +55,25 @@ typedef struct worker_thread {
   pthread_t thread_id;
 } worker_thread;
 
+
 /* scans file for input 1 */
-void *scan_file(void *arg){
-  fprintf(stdout, "Reached scan section\n");
-  fflush(stdout);
-  scan_thread *t = (scan_thread *)arg;
-  if (t->thread_num == 1){
-    fscanf(t->file, "%s", input1);
-    len_input1 = strlen(input1);
-  }
+//void *scan_file(void *arg){
+//fprintf(stdout, "Reached scan section\n");
+//fflush(stdout);
+//scan_thread *t = (scan_thread *)arg;
+//if (t->thread_num == 1){
+//  fscanf(t->file, "%s", input1);
+//  len_input1 = strlen(input1);
+//}
   
-  else {
-    fscanf(t->file, "%s", input2);
-    len_input2 = strlen(input2);
-  }
+//else {
+//  fscanf(t->file, "%s", input2);
+//  len_input2 = strlen(input2);
+//}
   
-  pthread_exit(0);
-}
+//pthread_exit(0);
+//}
+
 
 /* this will parse out the a and b values of the first string */
 void *a_parse(void *arg){
@@ -79,11 +81,11 @@ void *a_parse(void *arg){
   fflush(stdout);
   a_string = (char *)malloc((len_ab - z + 1)*sizeof(char));
   //we copy the length of the string-z digits into
-  strncpy(a_string,0,len_ab - z);
+  strncpy(a_string,ab_string,len_ab - z);
   a_string[len_ab - z] = '\0';
 
   mpz_init_set_str(a,a_string,16);
-
+  gmp_printf("a = %Zx\n", a);
   pthread_exit(0);
 }
 
@@ -92,12 +94,14 @@ void *b_parse(void *arg){
   fflush(stdout);
 
   b_string = (char *)malloc((z+1)*sizeof(char));
-   strncpy(b_string,len_ab - z,z);
+  strncpy(b_string,ab_string + (len_ab - z),z);
    b_string[z] = '\0';
 
    mpz_init_set_str(b,b_string,16);
+   gmp_printf("b = %Zx\n", b);
    pthread_exit(0);
 }
+
 /* this will prase out the c and d values of the second string */
 void *c_parse(void *arg){
     //c is a special case where potientially the second factor is way too small in comparison to ab
@@ -108,7 +112,7 @@ void *c_parse(void *arg){
   
   if(len_cd - z > 0){
     c_string = (char *)malloc((len_cd - z + 1) * sizeof(char));
-    strncpy(c_string,0,len_cd - z);
+    strncpy(c_string,cd_string,len_cd - z);
     c_string[len_cd - z] = '\0';
 
     mpz_init_set_str(c,c_string,16);
@@ -116,7 +120,7 @@ void *c_parse(void *arg){
     //this by default sets c to 0 in the case that the factor cd is less than half the length of ab
     mpz_init(c);
   }
-
+  gmp_printf("c = %Zx\n", c);
   pthread_exit(0);
 }
 
@@ -127,7 +131,7 @@ void *d_parse(void *arg){
 
   d_string = (char *)malloc((z+1)*sizeof(char));
   if(len_cd - z > 0){
-    strncpy(d_string,len_cd - z,z);
+    strncpy(d_string,cd_string + (len_cd - z),z);
     d_string[z] = '\0';
 
     mpz_init_set_str(d,d_string,16);
@@ -135,7 +139,7 @@ void *d_parse(void *arg){
     //if c does not exist then we want to set this value to be the entirety of cd 
     mpz_init_set_str(d,cd_string,16);
   }
-
+  gmp_printf("d = %Zx\n", d);
   pthread_exit(0);
 }
 
@@ -180,7 +184,6 @@ void *finish_factoring(void *arg){
 
   fprintf(stdout, "Reached finish_factoring\n");
   fflush(stdout);
-
   //we need to remove from (a + b)(c + d) the values of ac and bd so 
   mpz_sub(factoring, factoring, ac);
   mpz_sub(factoring, factoring, bd);
@@ -215,26 +218,26 @@ int main(int argc, char *argv[]) {
   in_file1 = fopen(argv[1],"r");
   in_file2 = fopen(argv[2],"r");
 
-  scan_t_info = (scan_thread *)malloc(2*sizeof(scan_thread));
-
-  // Create threads to scan files
-  for (i=1; i<=2; i++) {
-    scan_t_info[i].thread_num = i;
-    rc = pthread_create(&(scan_t_info->thread_id), NULL, scan_file, &(scan_t_info[i].thread_num));
-    if (rc!=0) {
-      fprintf(stderr, "Could not create thread\n");
+  if(in_file1 == NULL){
+      fprintf(stderr,"[%s] could not open file 1 %s\n",argv[0], argv[3]);
       exit(1);
-    }
+  }
+  
+  if(in_file2 == NULL){
+    fprintf(stderr,"[%s] could not open file 2 %s\n",argv[0], argv[4]);
+    exit(1);
   }
 
-  //closing our scan threads
-  for(i=1; i<=2; i++)
-      pthread_join(scan_t_info[i].thread_id,NULL);
-  free(scan_t_info);
+  
+  fscanf(in_file1,"%s",input1);
+  fscanf(in_file2,"%s",input2);
+  
+  len_input1 = strlen(input1);
+  len_input2 = strlen(input2);
+
+  
   fclose(in_file1);
   fclose(in_file2);
-
-  free(files);
   
   /* this is to make sure our threads put things into the imput 1 and 2 buffers  */
   printf("input1 = %s\ninput2 = %s\n", input1, input2);
@@ -255,6 +258,8 @@ int main(int argc, char *argv[]) {
     len_cd = len_input1;
     z = len_input2 / 2;
   }
+
+  printf("z = %d\n", z);
 
   pthread_t *threads = (pthread_t *)malloc(4*sizeof(pthread_t));
   /* from here we start up new threads in order to find the values of
@@ -284,6 +289,8 @@ int main(int argc, char *argv[]) {
   mpz_add(aplusb,a,b);
   mpz_add(cplusd,c,d);
 
+  mpz_mul(factoring,aplusb,cplusd);
+
   pthread_join(threads[0],NULL);
   pthread_join(threads[1],NULL);
 
@@ -294,24 +301,33 @@ int main(int argc, char *argv[]) {
   pthread_join(threads[0],NULL);
   pthread_join(threads[1],NULL);
 
-
+  fprintf(stdout, "Reached total\n");
+  
+  fflush(stdout);
   mpz_init(total);
   mpz_add(total, total, shift);
   mpz_add(total, total, factoring);
   mpz_add(total, total, bd);
+
+  if(argv[3] != NULL){
+    if(argv[3][0] == 'd'){
+      gmp_printf("%Zd\n",total);
+    }else if (argv[3][0] == 'x'){
+      gmp_printf("%Zx\n",total);
+    }
+  }
   
   // Free arrays
-  
+  /*  
   free(thread_info);
   free(threads);
   free(input1);
   free(input2);
   free(ab_string);
   free(cd_string);
-  
+  */
   // Destroy mutex
   pthread_mutex_destroy(&mutex);
   return 0;
 }
-
 
