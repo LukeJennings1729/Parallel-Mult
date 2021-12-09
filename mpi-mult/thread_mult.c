@@ -190,8 +190,7 @@ int main(int argc, char *argv[]){
     }
   }
 
-
-  printf("Time elapse with overhead: %f\n", diffgettime(start, stop));
+  printf("Time elapse w/o overhead: %f s\n", diffgettime(start, stop));
   
   return 0;
 }

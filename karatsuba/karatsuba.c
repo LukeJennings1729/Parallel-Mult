@@ -44,72 +44,32 @@ char *c_string;
 char *d_string;
 
 
-typedef struct scan_thread {
-  int thread_num;
-  pthread_t thread_id;
-  FILE *file;
-} scan_thread;
-
-typedef struct worker_thread {
-  int thread_num;
-  pthread_t thread_id;
-} worker_thread;
-
-
-/* scans file for input 1 */
-//void *scan_file(void *arg){
-//fprintf(stdout, "Reached scan section\n");
-//fflush(stdout);
-//scan_thread *t = (scan_thread *)arg;
-//if (t->thread_num == 1){
-//  fscanf(t->file, "%s", input1);
-//  len_input1 = strlen(input1);
-//}
-  
-//else {
-//  fscanf(t->file, "%s", input2);
-//  len_input2 = strlen(input2);
-//}
-  
-//pthread_exit(0);
-//}
-
-
 /* this will parse out the a and b values of the first string */
 void *a_parse(void *arg){
-  fprintf(stdout, "Reached a_parse\n");
-  fflush(stdout);
   a_string = (char *)malloc((len_ab - z + 1)*sizeof(char));
   //we copy the length of the string-z digits into
   strncpy(a_string,ab_string,len_ab - z);
   a_string[len_ab - z] = '\0';
 
   mpz_init_set_str(a,a_string,16);
-  gmp_printf("a = %Zx\n", a);
+
+  //in order not to do the initialization later in serial, we parallelize it here
+  mpz_init(aplusb);
   pthread_exit(0);
 }
 
 void *b_parse(void *arg){
-  fprintf(stdout, "Reached b_parse\n");
-  fflush(stdout);
-
   b_string = (char *)malloc((z+1)*sizeof(char));
   strncpy(b_string,ab_string + (len_ab - z),z);
    b_string[z] = '\0';
 
    mpz_init_set_str(b,b_string,16);
-   gmp_printf("b = %Zx\n", b);
    pthread_exit(0);
 }
 
 /* this will prase out the c and d values of the second string */
 void *c_parse(void *arg){
     //c is a special case where potientially the second factor is way too small in comparison to ab
-
-  fprintf(stdout, "Reached c_parse\n");
-  fflush(stdout);
-
-  
   if(len_cd - z > 0){
     c_string = (char *)malloc((len_cd - z + 1) * sizeof(char));
     strncpy(c_string,cd_string,len_cd - z);
@@ -120,15 +80,13 @@ void *c_parse(void *arg){
     //this by default sets c to 0 in the case that the factor cd is less than half the length of ab
     mpz_init(c);
   }
-  gmp_printf("c = %Zx\n", c);
+  //here we are initializing the total mpz_t struct in order to not have to do it later in serial
+  mpz_init(total);
+
   pthread_exit(0);
 }
 
 void *d_parse(void *arg){
-
-  fprintf(stdout, "Reached d_parse\n");
-  fflush(stdout);
-
   d_string = (char *)malloc((z+1)*sizeof(char));
   if(len_cd - z > 0){
     strncpy(d_string,cd_string + (len_cd - z),z);
@@ -139,29 +97,23 @@ void *d_parse(void *arg){
     //if c does not exist then we want to set this value to be the entirety of cd 
     mpz_init_set_str(d,cd_string,16);
   }
-  gmp_printf("d = %Zx\n", d);
+  //in order to not initialize cplusd in serial later, we do it here instead
+  mpz_init(cplusd);
+
   pthread_exit(0);
 }
 
 
 /* this will shift over the ac partial product by z^2 digits */
 void *ac_shift(void *arg){
-
-  fprintf(stdout, "Reached ac_shift\n");
-  fflush(stdout);
-
-  
   //we want to shift over our result of ac by z by z, as that is how many zeros the product would have
-  mpz_mul_2exp(shift,ac,z*z*4);
+  mpz_mul_2exp(shift,ac,2*z*4);
 
   pthread_exit(0);
 }
 
 /* Calculates the product if the A and C numbers */
 void *ac_compute(void *arg) {
-
-  fprintf(stdout, "Reached ac_compute\n");
-  fflush(stdout);
 
   //here we multiply a and c to be later used
   mpz_init(ac);
@@ -171,21 +123,16 @@ void *ac_compute(void *arg) {
 
 /* Calculates the product of the B and D numbers */
 void *bd_compute(void *arg) {
-  fprintf(stdout, "Reached bd_compute\n");
-  fflush(stdout);
-
-  
   mpz_init(bd);
   mpz_mul(bd,b,d);
+  
   pthread_exit(0);
 }
 
 void *finish_factoring(void *arg){
-
-  fprintf(stdout, "Reached finish_factoring\n");
-  fflush(stdout);
   //we need to remove from (a + b)(c + d) the values of ac and bd so 
   mpz_sub(factoring, factoring, ac);
+  
   mpz_sub(factoring, factoring, bd);
   
   mpz_mul_2exp(factoring,factoring,4 * z);
@@ -195,26 +142,20 @@ void *finish_factoring(void *arg){
 /*
   argv[1] name of first file that contains comically large number
   argv[2] name of second file that also contains comically large number
+  argv[3] optional, if "d" then the solution will print in decimal
+  if "x" then the solution will print in hexadecimal
  */
 int main(int argc, char *argv[]) {
 
-  int rc;
+ 
   struct timeval start, stop;
-  pthread_t *thread_info;
-  scan_thread *scan_t_info;
-  FILE *files;
-  size_t i;
   FILE *in_file1, *in_file2;
 
-  // Initialize mutex
-  pthread_mutex_init(&mutex, NULL);
-  
+  //buffers to place the string integer of the file
   char *input1 = (char *)malloc(MAX_BYTES * sizeof(char));
   char *input2 = (char *)malloc(MAX_BYTES * sizeof(char));
   int len_input1, len_input2;
 
-  fprintf(stdout, "Start\n");
-  fflush(stdout);
   in_file1 = fopen(argv[1],"r");
   in_file2 = fopen(argv[2],"r");
 
@@ -231,6 +172,10 @@ int main(int argc, char *argv[]) {
   
   fscanf(in_file1,"%s",input1);
   fscanf(in_file2,"%s",input2);
+
+  //here we start the timer as the integer string has been fully scanned in
+
+  gettimeofday(&start, NULL);
   
   len_input1 = strlen(input1);
   len_input2 = strlen(input2);
@@ -238,10 +183,6 @@ int main(int argc, char *argv[]) {
   
   fclose(in_file1);
   fclose(in_file2);
-  
-  /* this is to make sure our threads put things into the imput 1 and 2 buffers  */
-  printf("input1 = %s\ninput2 = %s\n", input1, input2);
-
   //next we want to set the longer number as ab, and the smaller number as cd, from there we determine z, the number of digits a and c are shifted over by //
   if(len_input1 >= len_input2){
     ab_string = input1;
@@ -259,7 +200,7 @@ int main(int argc, char *argv[]) {
     z = len_input2 / 2;
   }
 
-  printf("z = %d\n", z);
+  gmp_printf("z = %d\n", z);
 
   pthread_t *threads = (pthread_t *)malloc(4*sizeof(pthread_t));
   /* from here we start up new threads in order to find the values of
@@ -273,6 +214,11 @@ int main(int argc, char *argv[]) {
   pthread_join(threads[1],NULL);
   pthread_join(threads[2],NULL);
   pthread_join(threads[3],NULL);
+
+  free(input1);
+  free(input2);
+  free(ab_string);
+  free(cd_string);
   
   /* 
      after parsing through the inputs into a,b,c, and d we now need
@@ -283,8 +229,8 @@ int main(int argc, char *argv[]) {
 
   //in this step while the other threads are finding ac and bd, we are
   // doing the adds for a + b and c + d
-  mpz_init(aplusb);
-  mpz_init(cplusd);
+  //in order to even out work, the inits for the aplusb and cplusd have been
+  //moved to the a_parse and d_parse functions
   mpz_init(factoring);
   mpz_add(aplusb,a,b);
   mpz_add(cplusd,c,d);
@@ -300,15 +246,18 @@ int main(int argc, char *argv[]) {
 
   pthread_join(threads[0],NULL);
   pthread_join(threads[1],NULL);
+  //originally we did the initialization of the total mpz_t struct here, however, we figured this would be better done in parallel earlier on.
 
-  fprintf(stdout, "Reached total\n");
-  
-  fflush(stdout);
-  mpz_init(total);
+  gmp_printf("shift = %Zx\n", shift);
   mpz_add(total, total, shift);
+  gmp_printf("factoring = %Zx\n", factoring);
   mpz_add(total, total, factoring);
+  gmp_printf("bd = %Zx\n", bd);
   mpz_add(total, total, bd);
 
+  //now that we have our desired total we can stop the timer
+  gettimeofday(&stop, NULL);
+  
   if(argv[3] != NULL){
     if(argv[3][0] == 'd'){
       gmp_printf("%Zd\n",total);
@@ -316,18 +265,14 @@ int main(int argc, char *argv[]) {
       gmp_printf("%Zx\n",total);
     }
   }
-  
+
+  printf("Time elapsed w/o overhead: %f s\n", diffgettime(start, stop));
   // Free arrays
-  /*  
-  free(thread_info);
+
+  for(int i; i < 4; i++){
+    free(threads[i]);
+  }
   free(threads);
-  free(input1);
-  free(input2);
-  free(ab_string);
-  free(cd_string);
-  */
-  // Destroy mutex
-  pthread_mutex_destroy(&mutex);
   return 0;
 }
 
