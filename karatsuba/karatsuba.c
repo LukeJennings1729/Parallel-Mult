@@ -200,8 +200,6 @@ int main(int argc, char *argv[]) {
     z = len_input2 / 2;
   }
 
-  gmp_printf("z = %d\n", z);
-
   pthread_t *threads = (pthread_t *)malloc(4*sizeof(pthread_t));
   /* from here we start up new threads in order to find the values of
      a, b,c, and d */
@@ -248,11 +246,10 @@ int main(int argc, char *argv[]) {
   pthread_join(threads[1],NULL);
   //originally we did the initialization of the total mpz_t struct here, however, we figured this would be better done in parallel earlier on.
 
-  gmp_printf("shift = %Zx\n", shift);
   mpz_add(total, total, shift);
-  gmp_printf("factoring = %Zx\n", factoring);
+
   mpz_add(total, total, factoring);
-  gmp_printf("bd = %Zx\n", bd);
+
   mpz_add(total, total, bd);
 
   //now that we have our desired total we can stop the timer
